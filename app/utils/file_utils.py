@@ -3,13 +3,8 @@ from datetime import date, datetime
 from typing import Any
 
 import pandas as pd
+from exceptions import XLSExtractorError
 from logging_config import logger
-
-
-class XLSExtractorError(Exception):
-    """Ошибка при обработке XLS-файла"""
-
-    pass
 
 
 class XLSExtractor:
