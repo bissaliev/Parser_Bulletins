@@ -16,7 +16,7 @@ class SpimexTradingResults(BaseModel):
     delivery_basis_name: Mapped[str] = mapped_column(String(250))
     delivery_type_id: Mapped[str] = mapped_column(String(4))
     volume: Mapped[int]
-    total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    total: Mapped[Decimal] = mapped_column(Numeric(20, 2))
     count: Mapped[int]
     date: Mapped[date]
     created_on: Mapped[datetime] = mapped_column(
