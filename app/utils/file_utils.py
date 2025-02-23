@@ -1,5 +1,6 @@
 import io
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 import pandas as pd
@@ -66,9 +67,9 @@ class XLSExtractor:
                     "delivery_basis_id": row["Код Инструмента"][4:7],
                     "delivery_basis_name": row["Базис поставки"],
                     "delivery_type_id": row["Код Инструмента"][-1],
-                    "volume": row["Объем Договоров в единицах измерения"],
-                    "total": row["Обьем Договоров, руб."],
-                    "count": row["Количество Договоров, шт."],
+                    "volume": int(row["Объем Договоров в единицах измерения"]),
+                    "total": Decimal(row["Обьем Договоров, руб."]),
+                    "count": int(row["Количество Договоров, шт."]),
                     "date": self.bidding_date,
                     "created_on": current_datetime,
                     "updated_on": current_datetime,
