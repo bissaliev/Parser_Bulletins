@@ -3,8 +3,7 @@ from datetime import date
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-
-BASE_URL = "https://spimex.com"
+from logging_config import logger
 
 
 class Parser:
@@ -19,12 +18,27 @@ class Parser:
         """Извлечение ссылок на файл и дату торгов"""
         files = []
         for item in self.soup.select(".accordeon-inner__item"):
-            link = self._get_link_to_file(item)
-            bidding_date = self._get_bidding_date(item)
-            if not (link and bidding_date and self._check_year(bidding_date)):
-                break  # Прерываем цикл, если условие не выполняется
-            file_url = BASE_URL + link["href"]
-            files.append((file_url, bidding_date))
+            try:
+                link = self._get_link_to_file(item)
+                if not link:
+                    continue
+                bidding_date = self._get_bidding_date(item)
+                if not bidding_date:
+                    continue
+                if not self._check_year(bidding_date):
+                    logger.info(
+                        f"Дата {bidding_date} вне диапазона "
+                        f"[{self.min_year}, {self.current_year}]."
+                    )
+                    break  # Прерываем цикл, если условие не выполняется
+                file_url = link["href"]
+                if file_url:
+                    files.append((file_url, bidding_date))
+            except Exception as e:
+                logger.error(
+                    f"Ошибка при обработке элемента: {e}", exc_info=True
+                )
+        logger.info(f"Найдено {len(files)} ссылок")
         return files
 
     def _get_link_to_file(self, tag: Tag) -> str:
@@ -33,21 +47,34 @@ class Parser:
 
     def _get_bidding_date(self, tag: Tag) -> date | None:
         """Получение даты торгов"""
-        date_span = tag.select_one(".accordeon-inner__item-inner__title span")
-        if not date_span:
+        try:
+            date_span = tag.select_one(
+                ".accordeon-inner__item-inner__title span"
+            )
+            if not date_span:
+                return None
+            date_text = date_span.text.strip()
+            match = re.search(r"(\d{2})\.(\d{2})\.(\d{4})", date_text)
+            if match:
+                day, month, year = match.groups()
+            return date(int(year), int(month), int(day))
+        except Exception as e:
+            logger.error(f"Ошибка при разборе даты: {e}", exc_info=True)
             return None
-        date_text = date_span.text.strip()
-        match = re.search(r"(\d{2})\.(\d{2})\.(\d{4})", date_text)
-        if match:
-            day, month, year = match.groups()
-        return date(int(year), int(month), int(day))
 
     def _check_year(self, bidding_date: date) -> bool:
         """Проверка даты торгов на соответствие заданному периоду"""
         return self.min_year <= bidding_date.year <= self.current_year
 
     def get_next_page(self) -> str | None:
-        next_page_tag = self.soup.select_one(
-            ".bx-pagination-container .bx-pag-next a"
-        )
-        return next_page_tag["href"] if next_page_tag else None
+        """Получение ссылки на следующую страницу"""
+        try:
+            next_page_tag = self.soup.select_one(
+                ".bx-pagination-container .bx-pag-next a"
+            )
+            return next_page_tag["href"] if next_page_tag else None
+        except Exception as e:
+            logger.error(
+                f"Ошибка при получении следующей страницы: {e}", exc_info=True
+            )
+            return None
